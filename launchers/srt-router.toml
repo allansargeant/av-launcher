@@ -1,0 +1,22 @@
+# srt-router — crosspoint-based SRT/NDI router (Rust).
+# https://github.com/allansargeant/srt-router
+#
+#   AV_LAUNCHER_CONFIG=launchers/srt-router.toml npm run tauri dev
+#
+# srt-router takes `--config <path>` and binds from a NESTED `web.bind` key.
+
+[app]
+name = "SRT Router"
+command = "/Users/allansargeant/Projects/srt-router/target/debug/srtrouter"
+args = ["--config", "{config}"]
+url = "http://{host}:{port}/"
+default_port = 8080
+cwd = "/Users/allansargeant/Projects/srt-router"
+
+[inject]
+mode = "configfile"
+
+[inject.configfile]
+template = "/Users/allansargeant/Projects/srt-router/config/example.toml"
+set_key = "web.bind"
+value = "{host}:{port}"

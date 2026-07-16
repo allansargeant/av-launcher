@@ -1,0 +1,27 @@
+# flock — BirdDog Play NDI/SRT decoder fleet manager (Rust).
+# https://github.com/allansargeant/flock
+#
+# Run the launcher against this app with:
+#   AV_LAUNCHER_CONFIG=launchers/flock.toml npm run tauri dev
+# (or copy this file over src-tauri/launcher.toml).
+#
+# flock specifics that differ from srt-router:
+#   * it takes the config path as a POSITIONAL arg (`flock <config>`), not --config
+#   * its web bind is the TOP-LEVEL `bind` key, not a nested `web.bind`
+
+[app]
+name = "flock"
+command = "/Users/allansargeant/Projects/flock/target/debug/flock"
+args = ["{config}"]
+url = "http://{host}:{port}/"
+default_port = 8080
+# Run from the repo root so relative paths (data/registry.json) resolve.
+cwd = "/Users/allansargeant/Projects/flock"
+
+[inject]
+mode = "configfile"
+
+[inject.configfile]
+template = "/Users/allansargeant/Projects/flock/config/example.toml"
+set_key = "bind"
+value = "{host}:{port}"

@@ -1,0 +1,21 @@
+# RFutils — RF coordination + wireless-mic monitoring suite (Node/TS).
+# Local-only project. Demonstrates ENV injection (no config-file patching).
+#
+#   AV_LAUNCHER_CONFIG=launchers/rfutils.toml npm run tauri dev
+#
+# Build it first:  (cd ~/Projects/RFutils && npm run build)
+
+[app]
+name = "RFutils"
+command = "node"
+args = ["/Users/allansargeant/Projects/RFutils/packages/server/dist/index.js"]
+url = "http://{host}:{port}/"
+default_port = 8420
+cwd = "/Users/allansargeant/Projects/RFutils/packages/server"
+
+[inject]
+mode = "env"
+
+[inject.env]
+RFUTILS_SERVER_PORT = "{port}"
+RFUTILS_HOST = "{host}"

@@ -1,0 +1,33 @@
+# av-launcher app definition — the ACTIVE config (this build targets srt-router).
+#
+# Ready-made configs for other fleet apps live in ../launchers/*.toml. To target
+# one without editing this file, point AV_LAUNCHER_CONFIG at it, e.g.:
+#   AV_LAUNCHER_CONFIG=launchers/flock.toml npm run tauri dev
+# Or just copy that file over this one.
+#
+# Three injection modes cover the whole fleet:
+#   configfile  -> patch a key in the app's TOML  (srt-router: web.bind / flock: bind)
+#   env         -> set environment variables       (RFutils: RFUTILS_SERVER_PORT)
+#   args        -> {host}/{port} already in args    (a plain `--host --port` server)
+
+[app]
+name = "SRT Router"
+command = "/Users/allansargeant/Projects/srt-router/target/debug/srtrouter"
+args = ["--config", "{config}"]
+url = "http://{host}:{port}/"
+default_port = 8080
+# Run the server from the repo root so its relative paths (state/routes.json) resolve.
+cwd = "/Users/allansargeant/Projects/srt-router"
+
+[inject]
+mode = "configfile"
+
+[inject.configfile]
+# srt-router's own config is used as a template; we overwrite web.bind with the
+# host:port chosen in the launcher, write a rendered copy, and pass it via {config}.
+template = "/Users/allansargeant/Projects/srt-router/config/example.toml"
+set_key = "web.bind"
+value = "{host}:{port}"
+
+# See ../launchers/ for ready-made configs: flock.toml (config-file, top-level
+# `bind`, positional arg), rfutils.toml (env injection), srt-router.toml.
