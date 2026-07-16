@@ -27,3 +27,6 @@ toml = "0.8"
 # Comment-preserving TOML editing so we can patch an app's config file
 # (e.g. srt-router's `[web] bind`) without destroying its formatting.
 toml_edit = "0.22"
+
+# Standalone: keep this out of any parent app cargo workspace.
+[workspace]

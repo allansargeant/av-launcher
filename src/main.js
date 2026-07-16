@@ -143,26 +143,35 @@ ui.gear.addEventListener("click", () =>
 
 window.addEventListener("DOMContentLoaded", init);
 
-// ---------- Mock backend (browser preview only) ----------
+// ---------- Mock backend (browser preview + screenshots only) ----------
+// Query params let a headless render pick the app/port/state, e.g.
+//   index.html?app=flock&port=8080&state=running&host=10.147.17.93
 function mockInvoke(cmd, args = {}) {
+  const q = new URLSearchParams(location.search);
+  const host = q.get("host") || "10.147.17.93";
   const s =
-    mockInvoke.state || (mockInvoke.state = { running: false, port: 8080, iface: "en0" });
+    mockInvoke.state ||
+    (mockInvoke.state = {
+      running: q.get("state") === "running",
+      port: Number(q.get("port")) || 8080,
+      iface: q.get("iface") || "en0",
+    });
   const url = () => {
-    const host = s.iface === "lo0" ? "127.0.0.1" : "10.147.17.93";
-    return `http://${host}:${s.port}/`;
+    const h = s.iface === "lo0" ? "127.0.0.1" : host;
+    return `http://${h}:${s.port}/`;
   };
   const status = () => ({
     running: s.running,
     url: url(),
-    host: "10.147.17.93",
+    host,
     port: s.port,
     message: s.running ? "Running" : "Stopped",
   });
   switch (cmd) {
     case "get_app_info":
       return Promise.resolve({
-        name: "SRT Router",
-        default_port: 8080,
+        name: q.get("app") || "SRT Router",
+        default_port: s.port,
         url_template: "http://{host}:{port}/",
       });
     case "list_interfaces":

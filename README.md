@@ -15,6 +15,23 @@ without each app having to build its own launcher.
 Built with [Tauri v2](https://tauri.app) (Rust + a tiny HTML/CSS/JS panel), so
 the whole thing is a ~35 MB native app, not a bundled browser.
 
+## Shipped launchers
+
+Each fleet app now carries its own self-contained copy of this shell (with its
+config baked in and, for the Rust apps, its server binary bundled), built and
+released from that repo:
+
+| app | launcher | download |
+| --- | --- | --- |
+| srt-router | [`launcher/`](https://github.com/allansargeant/srt-router/tree/main/launcher) | [release](https://github.com/allansargeant/srt-router/releases/tag/launcher-v0.1.0) |
+| flock | [`launcher/`](https://github.com/allansargeant/flock/tree/master/launcher) | [release](https://github.com/allansargeant/flock/releases/tag/launcher-v0.1.0) |
+| RFutils | [`launcher/`](https://github.com/allansargeant/RFutils/tree/main/launcher) | [release](https://github.com/allansargeant/RFutils/releases/tag/launcher-v0.1.0) |
+
+This repo remains the canonical template/shell. A shipped `.app` finds its
+baked-in config + server binary via bundled resources (see
+[`scripts/screenshot.sh`](scripts/screenshot.sh) for how the README panel images
+are rendered).
+
 ## How it works
 
 The launcher itself is **app-agnostic**. It supervises a child process and

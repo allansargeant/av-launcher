@@ -195,14 +195,34 @@ fn set_dotted(doc: &mut toml_edit::DocumentMut, dotted: &str, val: &str) {
     }
 }
 
+/// Resolve a possibly-relative path against `base` (the bundle's resource dir).
+/// Absolute paths are returned unchanged, so dev configs with absolute paths and
+/// shipped bundles with relative (bundled-resource) paths both work.
+fn resolve_against(path: &str, base: Option<&Path>) -> String {
+    let p = Path::new(path);
+    if p.is_absolute() {
+        return path.to_string();
+    }
+    match base {
+        Some(dir) => dir.join(p).to_string_lossy().into_owned(),
+        None => path.to_string(),
+    }
+}
+
 /// Build the concrete [`Launch`] for the given host/port, performing whatever
-/// injection the app's `launcher.toml` calls for. `work_dir` is where a
-/// rendered config file is written (the launcher's app-config directory).
+/// injection the app's `launcher.toml` calls for.
+///
+/// * `work_dir` — writable dir for the rendered config and the default cwd
+///   (the launcher's app-config directory).
+/// * `resource_dir` — the bundle's resource dir; relative `command`/`template`
+///   paths resolve against it, so a shipped `.app` can carry its server binary
+///   and config template as bundled resources. `None` in dev (absolute paths).
 pub fn build_launch(
     cfg: &LauncherConfig,
     bind_host: &str,
     port: u16,
     work_dir: &Path,
+    resource_dir: Option<&Path>,
 ) -> Result<Launch, String> {
     let mut envs: Vec<(String, String)> = Vec::new();
     let mut rendered_config: Option<String> = None;
@@ -212,11 +232,12 @@ pub fn build_launch(
             let ci = cfg.inject.configfile.as_ref().ok_or(
                 "inject.mode = \"configfile\" but [inject.configfile] is missing",
             )?;
-            let raw = std::fs::read_to_string(&ci.template)
-                .map_err(|e| format!("reading template {}: {e}", ci.template))?;
+            let template = resolve_against(&ci.template, resource_dir);
+            let raw = std::fs::read_to_string(&template)
+                .map_err(|e| format!("reading template {template}: {e}"))?;
             let mut doc = raw
                 .parse::<toml_edit::DocumentMut>()
-                .map_err(|e| format!("parsing template {}: {e}", ci.template))?;
+                .map_err(|e| format!("parsing template {template}: {e}"))?;
             let value = subst(&ci.value, bind_host, port, None);
             set_dotted(&mut doc, &ci.set_key, &value);
 
@@ -243,18 +264,22 @@ pub fn build_launch(
         .map(|a| subst(a, bind_host, port, rendered_config.as_deref()))
         .collect();
 
+    let program = resolve_against(&cfg.app.command, resource_dir);
+
+    // Prefer an explicit cwd; otherwise run from the writable work dir so a
+    // bundled server can persist state (it can't write inside a read-only .app).
     let cwd = cfg
         .app
         .cwd
         .as_ref()
         .map(PathBuf::from)
-        .or_else(|| Path::new(&cfg.app.command).parent().map(Path::to_path_buf));
+        .unwrap_or_else(|| work_dir.to_path_buf());
 
     Ok(Launch {
-        program: cfg.app.command.clone(),
+        program,
         args,
         envs,
-        cwd,
+        cwd: Some(cwd),
     })
 }
 
@@ -295,7 +320,7 @@ mod tests {
             template.display()
         ));
 
-        let launch = build_launch(&cfg, "10.0.0.5", 9000, &tmp).unwrap();
+        let launch = build_launch(&cfg, "10.0.0.5", 9000, &tmp, None).unwrap();
         // The single positional arg is the rendered config path.
         assert_eq!(launch.args.len(), 1);
         let rendered = std::fs::read_to_string(&launch.args[0]).unwrap();
@@ -331,7 +356,7 @@ mod tests {
             template.display()
         ));
 
-        let launch = build_launch(&cfg, "0.0.0.0", 8080, &tmp).unwrap();
+        let launch = build_launch(&cfg, "0.0.0.0", 8080, &tmp, None).unwrap();
         assert_eq!(launch.args[0], "--config");
         let rendered = std::fs::read_to_string(&launch.args[1]).unwrap();
         assert!(
@@ -358,7 +383,7 @@ mod tests {
             "#,
         );
 
-        let launch = build_launch(&cfg, "192.168.1.20", 8420, &tmp).unwrap();
+        let launch = build_launch(&cfg, "192.168.1.20", 8420, &tmp, None).unwrap();
         assert!(launch
             .envs
             .contains(&("RFUTILS_SERVER_PORT".into(), "8420".into())));
@@ -381,7 +406,37 @@ mod tests {
             mode = "args"
             "#,
         );
-        let launch = build_launch(&cfg, "127.0.0.1", 7000, &tmp).unwrap();
+        let launch = build_launch(&cfg, "127.0.0.1", 7000, &tmp, None).unwrap();
         assert_eq!(launch.args, vec!["--host", "127.0.0.1", "--port", "7000"]);
+    }
+
+    /// Shipped bundle: a relative `command` + `template` resolve against the
+    /// resource dir, and cwd defaults to the writable work dir.
+    #[test]
+    fn bundled_relative_paths_resolve_against_resource_dir() {
+        let res = std::env::temp_dir().join("av-launcher-test-res");
+        let work = std::env::temp_dir().join("av-launcher-test-res-work");
+        std::fs::create_dir_all(&res).unwrap();
+        std::fs::write(res.join("server-config.toml"), "bind = \"0.0.0.0:8080\"\n").unwrap();
+
+        let cfg = parse(
+            r#"
+            [app]
+            name = "flock"
+            command = "flock"
+            args = ["{config}"]
+            [inject]
+            mode = "configfile"
+            [inject.configfile]
+            template = "server-config.toml"
+            set_key = "bind"
+            value = "{host}:{port}"
+            "#,
+        );
+        let launch = build_launch(&cfg, "0.0.0.0", 8080, &work, Some(&res)).unwrap();
+        assert_eq!(launch.program, res.join("flock").to_string_lossy());
+        assert_eq!(launch.cwd, Some(work.clone()));
+        let rendered = std::fs::read_to_string(&launch.args[0]).unwrap();
+        assert!(rendered.contains("bind = \"0.0.0.0:8080\""));
     }
 }

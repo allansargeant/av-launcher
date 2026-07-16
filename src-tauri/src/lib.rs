@@ -160,7 +160,13 @@ fn start_server(app: AppHandle, state: State<AppState>) -> Result<Status, String
         .path()
         .app_config_dir()
         .map_err(|e| format!("resolving app config dir: {e}"))?;
-    let launch = config::build_launch(&cfg, &bind_host, s.port, &work_dir)?;
+    let resource_dir = app.path().resource_dir().ok();
+    let launch = config::build_launch(&cfg, &bind_host, s.port, &work_dir, resource_dir.as_deref())?;
+
+    // A binary bundled as a resource can lose its execute bit on some platforms;
+    // restore it before spawning so a shipped bundle just works.
+    #[cfg(unix)]
+    ensure_executable(&launch.program);
 
     let mut cmd = Command::new(&launch.program);
     cmd.args(&launch.args);
@@ -168,6 +174,7 @@ fn start_server(app: AppHandle, state: State<AppState>) -> Result<Status, String
         cmd.env(k, v);
     }
     if let Some(cwd) = &launch.cwd {
+        std::fs::create_dir_all(cwd).ok();
         cmd.current_dir(cwd);
     }
 
@@ -221,6 +228,38 @@ fn show_main(app: &AppHandle) {
     }
 }
 
+#[cfg(unix)]
+fn ensure_executable(path: &str) {
+    use std::os::unix::fs::PermissionsExt;
+    if let Ok(meta) = std::fs::metadata(path) {
+        let mode = meta.permissions().mode();
+        if mode & 0o111 == 0 {
+            let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode | 0o755));
+        }
+    }
+}
+
+/// Pin the config path so `config::load()` (which has no app handle) finds it.
+/// Precedence: existing `$AV_LAUNCHER_CONFIG` > `./launcher.toml` (dev) >
+/// the bundled `launcher.toml` in the resource dir.
+fn pin_config_path(app: &AppHandle) {
+    if std::env::var_os("AV_LAUNCHER_CONFIG").is_some() {
+        return;
+    }
+    if std::env::current_dir()
+        .map(|d| d.join("launcher.toml").exists())
+        .unwrap_or(false)
+    {
+        return; // find_config_path will pick up ./launcher.toml
+    }
+    if let Ok(res) = app.path().resource_dir() {
+        let bundled = res.join("launcher.toml");
+        if bundled.exists() {
+            std::env::set_var("AV_LAUNCHER_CONFIG", bundled);
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -239,6 +278,8 @@ pub fn run() {
             quit_app,
         ])
         .setup(|app| {
+            pin_config_path(&app.handle().clone());
+
             // Tray menu: Show / Quit.
             let show = MenuItem::with_id(app, "show", "Show Launcher", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
