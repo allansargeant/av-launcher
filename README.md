@@ -6,31 +6,33 @@
 > full tray app has **not yet** been run end-to-end against a live server on
 > the target machine.
 
-A Bitfocus Companion–style **tray launcher** for the local web-server apps in
-this fleet (srt-router, flock, RFutils, …). It gives any of them a
-small splash panel to pick a **network interface** and **port**, **Start/Stop**
-the server, **Launch GUI** in the browser, and live in the **system tray** —
-without each app having to build its own launcher.
+A menu-bar **tray launcher** shell for the local web-server apps in this fleet
+(srt-router, flock, RFutils, …). It gives any of them a small panel to pick a
+**network interface** and **port**, **Start/Stop** the server, **Open** the web
+UI, and live in the **system tray** — without each app building its own.
 
-Built with [Tauri v2](https://tauri.app) (Rust + a tiny HTML/CSS/JS panel), so
-the whole thing is a ~35 MB native app, not a bundled browser.
+The panel is an original card design that **themes itself to each app's own web
+UI** (palette carried in `launcher.toml`), built with
+[Tauri v2](https://tauri.app) (Rust + a tiny HTML/CSS/JS panel) — a small native
+app, not a bundled browser.
 
-## Shipped launchers
+## Shipped apps
 
-Each fleet app now carries its own self-contained copy of this shell (with its
-config baked in and, for the Rust apps, its server binary bundled), built and
-released from that repo:
+Each fleet app ships this shell as its **own desktop app**, with the server
+embedded so the download is one self-contained thing (no linking, nothing to
+install). Built and released from each repo:
 
-| app | launcher | download |
-| --- | --- | --- |
-| srt-router | [`launcher/`](https://github.com/allansargeant/srt-router/tree/main/launcher) | [release](https://github.com/allansargeant/srt-router/releases/tag/launcher-v0.1.0) |
-| flock | [`launcher/`](https://github.com/allansargeant/flock/tree/master/launcher) | [release](https://github.com/allansargeant/flock/releases/tag/launcher-v0.1.0) |
-| RFutils | [`launcher/`](https://github.com/allansargeant/RFutils/tree/main/launcher) | [release](https://github.com/allansargeant/RFutils/releases/tag/launcher-v0.1.0) |
+| app | source | download | server embedding |
+| --- | --- | --- | --- |
+| srt-router | [`launcher/`](https://github.com/allansargeant/srt-router/tree/main/launcher) | [v0.1.0](https://github.com/allansargeant/srt-router/releases/tag/v0.1.0) | native binary bundled |
+| flock | [`launcher/`](https://github.com/allansargeant/flock/tree/master/launcher) | [v0.1.0](https://github.com/allansargeant/flock/releases/tag/v0.1.0) | native binary bundled |
+| RFutils | [`launcher/`](https://github.com/allansargeant/RFutils/tree/main/launcher) | [v0.1.0](https://github.com/allansargeant/RFutils/releases/tag/v0.1.0) | Node runtime + app embedded |
 
 This repo remains the canonical template/shell. A shipped `.app` finds its
-baked-in config + server binary via bundled resources (see
-[`scripts/screenshot.sh`](scripts/screenshot.sh) for how the README panel images
-are rendered).
+baked-in config, theme, and server (a native binary, or an embedded Node runtime
++ ESM bundle) via bundled resources — the `{resource}` placeholder in
+`launcher.toml` points at them. See [`scripts/screenshot.sh`](scripts/screenshot.sh)
+for how the README panel images are rendered.
 
 ## How it works
 

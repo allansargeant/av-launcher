@@ -32,7 +32,7 @@ OUT_ABS="$(cd "$(dirname "$OUT")" && pwd)/$(basename "$OUT")"
 # 500 (the panel is happy at any width >= its 460 design width) to avoid the
 # right edge being clipped.
 "$CHROME" --headless=new --disable-gpu --hide-scrollbars \
-  --force-device-scale-factor=2 --window-size=500,560 \
+  --force-device-scale-factor=2 --window-size=500,470 \
   --virtual-time-budget=1500 \
   --screenshot="$OUT_ABS" "$URL" >/dev/null 2>&1
 
