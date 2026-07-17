@@ -29,5 +29,18 @@ template = "/Users/allansargeant/Projects/srt-router/config/example.toml"
 set_key = "web.bind"
 value = "{host}:{port}"
 
+# Palette mirrored from srt-router's own web UI (dark slate + periwinkle accent).
+[app.theme]
+bg = "#14161a"
+panel = "#1a1d24"
+"panel-2" = "#22262e"
+border = "#2a2d33"
+text = "#e6e6e6"
+muted = "#b7bfca"
+dim = "#6b7280"
+accent = "#9fb4ff"
+"accent-soft" = "#1c2333"
+good = "#37835c"
+
 # See ../launchers/ for ready-made configs: flock.toml (config-file, top-level
 # `bind`, positional arg), rfutils.toml (env injection), srt-router.toml.
