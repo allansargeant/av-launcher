@@ -16,6 +16,17 @@ UI** (palette carried in `launcher.toml`), built with
 [Tauri v2](https://tauri.app) (Rust + a tiny HTML/CSS/JS panel) — a small native
 app, not a bundled browser.
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/panel-srt-router.png" width="260" alt="Launcher panel themed for SRT Router (running)"><br><sub>srt-router · running</sub></td>
+    <td align="center"><img src="docs/screenshots/panel-flock.png" width="260" alt="Launcher panel themed for flock (running)"><br><sub>flock · running</sub></td>
+    <td align="center"><img src="docs/screenshots/panel-rfutils.png" width="260" alt="Launcher panel themed for RFutils (stopped)"><br><sub>RFutils · stopped</sub></td>
+  </tr>
+</table>
+
+*The same shell, themed per app from `launcher.toml`. Rendered from the exact
+panel HTML/CSS via [`scripts/screenshot.sh`](scripts/screenshot.sh) (headless Chrome).*
+
 ## Shipped apps
 
 Each fleet app ships this shell as its **own desktop app**, with the server
