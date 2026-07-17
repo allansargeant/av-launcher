@@ -111,6 +111,25 @@ AV_LAUNCHER_CONFIG=launchers/rfutils.toml npm run tauri dev   # RFutils
 npm run tauri build         # produces a .app / .dmg (macOS), etc.
 ```
 
+By default the `.app`/`.dmg`/`.exe` this produces is **not code-signed or
+notarized** — that needs paid Apple / Windows developer certificates. The app is
+safe to run; the OS just can't verify a publisher, so it warns the first time.
+
+- **macOS** — first launch says the app **"is damaged"** or **"cannot be opened
+  because the developer cannot be verified"**. Fix: **right-click → Open →
+  Open** (once), or `xattr -dr com.apple.quarantine "/Applications/<App>.app"`.
+- **Windows** — the installer trips SmartScreen (**"Windows protected your
+  PC"**) → **More info → Run anyway**.
+
+**Signing it yourself:** Tauri signs + notarizes automatically when you set the
+Apple credentials as env vars / GitHub Actions secrets — `APPLE_CERTIFICATE`,
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`,
+`APPLE_PASSWORD`, `APPLE_TEAM_ID`. RFutils' desktop app (which is built on this
+shell) documents the full flow in
+[its `launcher/SIGNING.md`](https://github.com/allansargeant/RFutils/blob/main/launcher/SIGNING.md).
+For an *ad-hoc* local-only signature: `codesign --force --deep --sign - "<App>.app"`.
+On Windows, clearing SmartScreen needs an Authenticode code-signing certificate.
+
 ## Tests
 
 ```bash
